@@ -28,7 +28,56 @@ const mapImage = L.imageOverlay('images/fullmap.png', [xy(0, 0), xy(WIDTH, HEIGH
 map.setView(xy(WIDTH / 2, HEIGHT / 2), -3);
 map.setMaxBounds(L.latLngBounds([xy(-MARGIN, -MARGIN), xy(WIDTH+MARGIN, HEIGHT+MARGIN)]));
 
-loadUrl("sample.spoiler.json");
+//loadUrl("sample.spoiler.json");
+const dialog = document.querySelector('#fileloadOverlay');
+dialogPolyfill.registerDialog(dialog);
+dialog.showModal();
+document.querySelector('#inputFile').addEventListener("change", handleFileUpload, false);
+function handleFileUpload() {
+  handleFiles(this.files);
+}
+function handleFiles(fileList) {
+  if(!fileList || fileList.length != 1) {
+    return;
+  }
+  dialog.close();
+  const reader = new FileReader();
+  reader.onload = e => {
+    const data = JSON.parse(e.target.result);
+    processJson(data);
+  };
+  reader.readAsText(fileList[0]);
+}
+document.querySelector('#inputUrlSubmit').addEventListener("click", handleUrl, false);
+function handleUrl() {
+  const field = document.querySelector('#inputUrl');
+  if(field.value.length < 10) {
+    return;
+  }
+  dialog.close();
+  loadUrl(field.value);
+}
+document.querySelector('#inputSampleSubmit').addEventListener("click", handleSample, false);
+function handleSample() {
+  dialog.close();
+  loadUrl("sample.spoiler.json");
+}
+const dropTarget = document.querySelector('#dropTarget');
+dropTarget.addEventListener("dragenter", ignore, false);
+dropTarget.addEventListener("dragover", ignore, false);
+dropTarget.addEventListener("drop", drop, false);
+function ignore(e) {
+  e.stopPropagation();
+  e.preventDefault();
+}
+function drop(e) {
+  e.stopPropagation();
+  e.preventDefault();
+  console.log("hi");
+  var dt = e.dataTransfer;
+  var files = dt.files;
+  handleFiles(files);
+}
 
 /********************** */
 
@@ -41,8 +90,6 @@ function drawDoorLine(e) {
 }
 
 function loadUrl(url) {
-  shortestDoors.clearLayers();
-  otherDoors.clearLayers();
   const request = new XMLHttpRequest();
   request.open('GET', url, true);
 
@@ -64,6 +111,8 @@ function loadUrl(url) {
 }
 
 function processJson(json) {
+  shortestDoors.clearLayers();
+  otherDoors.clearLayers();
   const defaultOpts = {icon: L.icon.glyph({ glyph: '🚪', iconUrl: 'images/marker-gray.svg' })};
   json.clusters.forEach(cluster => {
     const rank = Math.ceil(cluster.rank);
