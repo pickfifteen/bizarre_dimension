@@ -35,7 +35,7 @@ loadUrl("sample.spoiler.json");
 let doorLine;
 function drawDoorLine(e) {
   if(!doorLine) {
-    doorLine = L.polyline([], {weight: 4}).addTo(map);
+    doorLine = L.polyline([], {weight: 4, color: 'yellow'}).addTo(map);
   }
   doorLine.setLatLngs([xy(this.x, this.y), xy(this.xDestination, this.yDestination)]);
 }
