@@ -1,3 +1,10 @@
+const WIDTH = 8192;
+const HEIGHT = 10240;
+const MARGIN = 300;
+
+const MIN_ZOOM = 0;
+const MAX_ZOOM = 6;
+
 const shortestDoors = L.layerGroup([]);
 const otherDoors = L.layerGroup([]);
 const overlayMaps = {
@@ -6,29 +13,32 @@ const overlayMaps = {
 };
 const map = L.map('map', {
     crs: L.CRS.Simple,
-    minZoom: -4,
-    maxZoom: 1,
+    minZoom: MIN_ZOOM,
+    maxZoom: MAX_ZOOM,
     layers: [shortestDoors]
 });
 L.control.layers(null, overlayMaps).addTo(map);
+let rc = new L.RasterCoords(map, [WIDTH, HEIGHT]);
+console.log(`RC zoomLevel: ${rc.zoomLevel()}`);
 
-const WIDTH = 8192;
-const HEIGHT = 10240;
-const MARGIN = 300;
-
-const yx = L.latLng;
 const xy = function(x, y) {
   if (L.Util.isArray(x)) {    // When doing xy([x, y]);
-    return yx(HEIGHT - x[1], x[0]);
+    return rc.unproject(x);
   }
-  return yx(HEIGHT - y, x);  // When doing xy(x, y);
+  return rc.unproject([x, y]);  // When doing xy(x, y);
 };
 
-const mapImage = L.imageOverlay('images/fullmap.png', [xy(0, 0), xy(WIDTH, HEIGHT)]).addTo(map);
-map.setView(xy(WIDTH / 2, HEIGHT / 2), -3);
+map.on('click', e => {
+  console.log(`Click. latlng: ${e.latlng}, xy: ${rc.project(e.latlng)}`);
+});
+
+const mapImage = L.tileLayer('images/tiles/{z}/{x}/{y}.png', {
+  noWrap: true,
+  bounds: L.latLngBounds([xy(0, 0), xy(WIDTH, HEIGHT)])
+}).addTo(map)
+map.setView(xy(WIDTH / 2, HEIGHT / 2), 3);
 map.setMaxBounds(L.latLngBounds([xy(-MARGIN, -MARGIN), xy(WIDTH+MARGIN, HEIGHT+MARGIN)]));
 
-//loadUrl("sample.spoiler.json");
 const dialog = document.querySelector('#fileloadOverlay');
 dialogPolyfill.registerDialog(dialog);
 dialog.showModal();
