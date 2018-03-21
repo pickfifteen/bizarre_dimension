@@ -8,10 +8,12 @@ const MAX_ZOOM = 6;
 const shortestDoors = L.layerGroup([]);
 const otherDoors = L.layerGroup([]);
 const clusters = L.layerGroup([]);
+const chests = L.layerGroup([]);
 const overlayMaps = {
   "Shortest Path Doors": shortestDoors,
   "Other Doors": otherDoors,
   "Clusters": clusters,
+  "Chests": chests,
 };
 const map = L.map('map', {
     crs: L.CRS.Simple,
@@ -140,8 +142,25 @@ function processJson(json) {
   shortestDoors.clearLayers();
   otherDoors.clearLayers();
   clusters.clearLayers();
-  const defaultOpts = {icon: L.icon.glyph({ glyph: '🚪', iconUrl: 'images/marker-gray.svg' })};
-  json.clusters.forEach(cluster => {
+  chests.clearLayers();
+  json.chests && json.chests.forEach(chest => {
+    const markerLoc = xy(chest.x, chest.y);
+    let symbol = '🎁';
+    desc = `Name: ${chest.name}`;
+    if(chest.money !== undefined) {
+      symbol = '💲';
+      desc = `Money: $${chest.money}`;
+    }
+    if(chest.itemType == 0x10) symbol = '🗡️';
+    if(chest.itemType == 0x14) symbol = '🛡️';
+    if(chest.itemType == 0x18) symbol = '🧤';
+    if(chest.itemType == 0x1C) symbol = '🎩';
+    if([32, 36, 40, 44].indexOf(chest.itemType) != -1) symbol = '🥤';
+    const opts = {icon: L.icon.glyph({ glyph: symbol, iconUrl: 'images/marker-blue.svg' })};
+    const marker = L.marker(markerLoc, opts).addTo(chests).bindPopup(desc);
+  });
+  const doorOpts = {icon: L.icon.glyph({ glyph: '🚪', iconUrl: 'images/marker-gray.svg' })};
+  json.clusters && json.clusters.forEach(cluster => {
     if(cluster.doors.every(door => !door.xDestination)) {
       // Completely ignore clusters with no reachable doors.
       return;
@@ -165,7 +184,7 @@ function processJson(json) {
         marker = L.marker(markerLoc, opts).addTo(shortestDoors);
       }
       else {
-        marker = L.marker(markerLoc, defaultOpts).addTo(otherDoors);
+        marker = L.marker(markerLoc, doorOpts).addTo(otherDoors);
       }
       marker.on('click', clickDoor.bind(door));
     })
