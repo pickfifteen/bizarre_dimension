@@ -12,17 +12,19 @@ const shortestDoors = L.layerGroup([]);
 const otherDoors = L.layerGroup([]);
 const clusters = L.layerGroup([]);
 const chests = L.layerGroup([]);
+const bosses = L.layerGroup([]);
 const overlayMaps = {
   "Shortest Path Doors": shortestDoors,
   "Other Doors": otherDoors,
   "Clusters": clusters,
   "Chests": chests,
+  "Bosses": bosses,
 };
 const map = L.map('map', {
     crs: L.CRS.Simple,
     minZoom: MIN_ZOOM,
     maxZoom: MAX_ZOOM,
-    layers: [shortestDoors]
+    layers: [shortestDoors, bosses]
 });
 L.control.layers(null, overlayMaps).addTo(map);
 let rc = new L.RasterCoords(map, [WIDTH, HEIGHT]);
@@ -158,6 +160,16 @@ function processJson(json) {
   otherDoors.clearLayers();
   clusters.clearLayers();
   chests.clearLayers();
+  bosses.clearLayers();
+
+  json.bosses && json.bosses.forEach(boss => {
+    const markerLoc = xy(boss.x, boss.y);
+    const opts = {icon: L.icon.glyph({ glyph: `#${boss.bossIndex+1}`,
+      iconUrl: 'images/marker-yellow.svg', glyphColor: 'maroon' })};
+    const desc = boss.enemyEncounters[0].filter(ee => ee.activity > 0).map(ee => ee.enemy).join('<br>');
+    const marker = L.marker(markerLoc, opts).addTo(bosses).bindPopup(desc);
+  });
+
   json.chests && json.chests.forEach(chest => {
     const markerLoc = xy(chest.x, chest.y);
     let symbol = '🎁';
