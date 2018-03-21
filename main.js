@@ -7,9 +7,11 @@ const MAX_ZOOM = 6;
 
 const shortestDoors = L.layerGroup([]);
 const otherDoors = L.layerGroup([]);
+const clusters = L.layerGroup([]);
 const overlayMaps = {
   "Shortest Path Doors": shortestDoors,
   "Other Doors": otherDoors,
+  "Clusters": clusters,
 };
 const map = L.map('map', {
     crs: L.CRS.Simple,
@@ -91,12 +93,26 @@ function drop(e) {
 
 /********************** */
 
-let doorLine;
-function drawDoorLine(e) {
-  if(!doorLine) {
-    doorLine = L.polyline([], {weight: 4, color: 'yellow'}).addTo(map);
+let doorLines = [];
+function clearDoorLines() {
+  doorLines.forEach(doorLine => doorLine.remove());
+  doorLines = [];
+}
+function drawDoorLine(door) {
+  if(!door.xDestination) {
+    return;
   }
-  doorLine.setLatLngs([xy(this.x, this.y), xy(this.xDestination, this.yDestination)]);
+  const doorLine = L.polyline([xy(door.x, door.y), xy(door.xDestination, door.yDestination)],
+    {weight: 4, color: 'yellow'}).addTo(map);
+  doorLines.push(doorLine);
+}
+function clickDoor(e) {
+  clearDoorLines();
+  drawDoorLine(this);
+}
+function clickCluster(e) {
+  clearDoorLines();
+  this.doors.forEach(door => drawDoorLine(door));
 }
 
 function loadUrl(url) {
@@ -123,9 +139,20 @@ function loadUrl(url) {
 function processJson(json) {
   shortestDoors.clearLayers();
   otherDoors.clearLayers();
+  clusters.clearLayers();
   const defaultOpts = {icon: L.icon.glyph({ glyph: '🚪', iconUrl: 'images/marker-gray.svg' })};
   json.clusters.forEach(cluster => {
+    if(cluster.doors.every(door => !door.xDestination)) {
+      // Completely ignore clusters with no reachable doors.
+      return;
+    }
     const rank = Math.ceil(cluster.rank);
+    const bounds = [xy(cluster.explicitBounds.x1, cluster.explicitBounds.y1),
+      xy(cluster.explicitBounds.x2, cluster.explicitBounds.y2)];
+    const rect = L.rectangle(bounds).addTo(clusters).on('click', clickCluster.bind(cluster));
+    rect.area = (cluster.explicitBounds.x2 - cluster.explicitBounds.x1) * 
+      (cluster.explicitBounds.y2 - cluster.explicitBounds.y1);
+    rect.bindPopup(`Rank: ${rank}`);
     cluster.doors.forEach(door => {
       if(!door.xDestination) {
         // A door that was turned into a non-exit in the AC. We don't need to display this.
@@ -140,8 +167,10 @@ function processJson(json) {
       else {
         marker = L.marker(markerLoc, defaultOpts).addTo(otherDoors);
       }
-      marker.on('click', drawDoorLine.bind(door));
+      marker.on('click', clickDoor.bind(door));
     })
   })
+  // Order the clusters such that the smaller ones are always in front.
+  clusters.getLayers().sort((a, b) => b.area - a.area).forEach(rect => rect.bringToFront());
 }
 
