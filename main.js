@@ -5,6 +5,8 @@ const MARGIN = 300;
 const MIN_ZOOM = 0;
 const MAX_ZOOM = 6;
 
+let jsonData;
+
 const shortestDoors = L.layerGroup([]);
 const otherDoors = L.layerGroup([]);
 const clusters = L.layerGroup([]);
@@ -139,6 +141,7 @@ function loadUrl(url) {
 }
 
 function processJson(json) {
+  jsonData = json;
   shortestDoors.clearLayers();
   otherDoors.clearLayers();
   clusters.clearLayers();
@@ -160,7 +163,13 @@ function processJson(json) {
     const marker = L.marker(markerLoc, opts).addTo(chests).bindPopup(desc);
   });
   const doorOpts = {icon: L.icon.glyph({ glyph: '🚪', iconUrl: 'images/marker-gray.svg' })};
+
   json.clusters && json.clusters.forEach(cluster => {
+    cluster.area = (cluster.explicitBounds.x2 - cluster.explicitBounds.x1) * 
+      (cluster.explicitBounds.y2 - cluster.explicitBounds.y1);
+  });
+  const sortedClusters = (json.clusters  || []).sort((a, b) => b.area - a.area);
+  sortedClusters.forEach(cluster => {
     if(cluster.doors.every(door => !door.xDestination)) {
       // Completely ignore clusters with no reachable doors.
       return;
@@ -169,8 +178,6 @@ function processJson(json) {
     const bounds = [xy(cluster.explicitBounds.x1, cluster.explicitBounds.y1),
       xy(cluster.explicitBounds.x2, cluster.explicitBounds.y2)];
     const rect = L.rectangle(bounds).addTo(clusters).on('click', clickCluster.bind(cluster));
-    rect.area = (cluster.explicitBounds.x2 - cluster.explicitBounds.x1) * 
-      (cluster.explicitBounds.y2 - cluster.explicitBounds.y1);
     rect.bindPopup(`Rank: ${rank}`);
     cluster.doors.forEach(door => {
       if(!door.xDestination) {
@@ -189,7 +196,5 @@ function processJson(json) {
       marker.on('click', clickDoor.bind(door));
     })
   })
-  // Order the clusters such that the smaller ones are always in front.
-  clusters.getLayers().sort((a, b) => b.area - a.area).forEach(rect => rect.bringToFront());
 }
 
