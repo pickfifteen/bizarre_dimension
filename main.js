@@ -6,6 +6,7 @@ const MIN_ZOOM = 0;
 const MAX_ZOOM = 6;
 
 let jsonData;
+const options = window.location.search ? window.location.search.slice(1).split(',') : [];
 
 const shortestDoors = L.layerGroup([]);
 const otherDoors = L.layerGroup([]);
@@ -102,12 +103,13 @@ function clearDoorLines() {
   doorLines.forEach(doorLine => doorLine.remove());
   doorLines = [];
 }
-function drawDoorLine(door) {
+function drawDoorLine(door, opts) {
   if(!door.xDestination) {
     return;
   }
+  opts = opts || {weight: 4, color: 'yellow'};
   const doorLine = L.polyline([xy(door.x, door.y), xy(door.xDestination, door.yDestination)],
-    {weight: 4, color: 'yellow'}).addTo(map);
+    opts).addTo(map);
   doorLines.push(doorLine);
 }
 function clickDoor(e) {
@@ -117,6 +119,16 @@ function clickDoor(e) {
 function clickCluster(e) {
   clearDoorLines();
   this.doors.forEach(door => drawDoorLine(door));
+  if(!options.includes('doorcheck')) return;
+  jsonData.clusters.forEach(cluster => {
+    if(cluster == this) return;
+    cluster.doors.forEach(door => {
+      if(door.xDestination >= this.explicitBounds.x1 && door.xDestination <= this.explicitBounds.x2 && 
+        door.yDestination >= this.explicitBounds.y1 && door.yDestination <= this.explicitBounds.y2 ) {
+          drawDoorLine(door, {weight: 3, color: 'blue'});
+        }
+    })
+  })
 }
 
 function loadUrl(url) {
