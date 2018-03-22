@@ -218,6 +218,9 @@ function processJson(json) {
         marker = L.marker(markerLoc, doorOpts).addTo(otherDoors);
       }
       marker.on('click', clickDoor.bind(door));
+      if(options.includes('doorcheck')) {
+        marker.bindPopup(`Cell: ${door.enemyCell.toString(16)}, X: ${door.x.toString(16)}, Y: ${door.y.toString(16)}`);
+      }
     })
   })
 }
