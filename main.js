@@ -60,7 +60,7 @@ if(options.includes('enemies')) {
       drawDoorLine(door);
     } 
     var popup = L.popup().setLatLng(e.latlng)
-      .setContent(`index: ${enemyZone.index.toString(16)}<br>rank: ${enemyZone.caveRank}<br>${JSON.stringify(enemyZone.enemyGroup)}`)
+      .setContent(`index: ${enemyZone.index.toString(16)}<br>rank: ${enemyZone.caveRank}<br>area: ${enemyZone.area}<br>${JSON.stringify(enemyZone.enemyGroup)}`)
       .openOn(map);
   });
 }
