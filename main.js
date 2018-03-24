@@ -54,7 +54,7 @@ if(options.includes('enemies')) {
       return;
     }
     clearDoorLines();
-    if(enemyZone.canonicalExit) {
+    if(enemyZone.canonicalExit && jsonData.clusters) {
       const cluster = jsonData.clusters.find(cluster => cluster.doors.find(door => door.index == enemyZone.canonicalExit));
       const door = cluster.doors.find(door => door.index == enemyZone.canonicalExit);
       drawDoorLine(door);
@@ -100,10 +100,10 @@ function handleUrl() {
   dialog.close();
   loadUrl(field.value);
 }
-document.querySelector('#inputSampleSubmit').addEventListener("click", handleSample, false);
+[].forEach.call(document.getElementsByClassName("sampleButton"), el => el.addEventListener("click", handleSample, false));
 function handleSample() {
   dialog.close();
-  loadUrl("sample.spoiler.json");
+  loadUrl(`${this.dataset.filename}.spoiler.json`);
 }
 const dropTarget = document.querySelector('#dropTarget');
 dropTarget.addEventListener("dragenter", ignore, false);
@@ -195,7 +195,7 @@ function processJson(json) {
       const rect = L.rectangle(bounds, {color: 'red', opacity: 0.5}).addTo(optionsOnly);
       rect.interactive = false;
     }
-    if(enemyZone.canonicalExit) return;
+    if(enemyZone.canonicalExit || !options.includes('badenemies')) return;
     const bounds = [xy(enemyZone.xBounds[0], enemyZone.yBounds[0]),
       xy(enemyZone.xBounds[1], enemyZone.yBounds[1])];
     const rect = L.rectangle(bounds, {color: 'yellow', opacity: 0.8}).addTo(optionsOnly);
