@@ -13,6 +13,7 @@ const otherDoors = L.layerGroup([]);
 const clusters = L.layerGroup([]);
 const chests = L.layerGroup([]);
 const bosses = L.layerGroup([]);
+const optionsOnly = L.layerGroup([]);
 const overlayMaps = {
   "Shortest Path Doors": shortestDoors,
   "Other Doors": otherDoors,
@@ -20,15 +21,21 @@ const overlayMaps = {
   "Chests": chests,
   "Bosses": bosses,
 };
+const allLayers = [shortestDoors, otherDoors, clusters, chests, bosses];
+const defaultLayers = [shortestDoors, bosses];
+if(options.length) {
+  overlayMaps["Optional"] = optionsOnly;
+  allLayers.push(optionsOnly);
+  defaultLayers.push(optionsOnly);
+}
 const map = L.map('map', {
     crs: L.CRS.Simple,
     minZoom: MIN_ZOOM,
     maxZoom: MAX_ZOOM,
-    layers: [shortestDoors, bosses]
+    layers: defaultLayers
 });
 L.control.layers(null, overlayMaps).addTo(map);
 let rc = new L.RasterCoords(map, [WIDTH, HEIGHT]);
-console.log(`RC zoomLevel: ${rc.zoomLevel()}`);
 
 const xy = function(x, y) {
   if (L.Util.isArray(x)) {    // When doing xy([x, y]);
@@ -37,9 +44,26 @@ const xy = function(x, y) {
   return rc.unproject([x, y]);  // When doing xy(x, y);
 };
 
-map.on('click', e => {
-  console.log(`Click. latlng: ${e.latlng}, xy: ${rc.project(e.latlng)}`);
-});
+if(options.includes('enemies')) {
+  map.on('click', e => {
+    if(!jsonData.enemies) return;
+    const coords = rc.project(e.latlng);
+    const enemyZone = jsonData.enemies.find(enemyZone => enemyZone.xBounds[0] <= coords.x && enemyZone.xBounds[1] >= coords.x &&
+      enemyZone.yBounds[0] <= coords.y && enemyZone.yBounds[1] >= coords.y);
+    if(!enemyZone) {
+      return;
+    }
+    clearDoorLines();
+    if(enemyZone.canonicalExit) {
+      const cluster = jsonData.clusters.find(cluster => cluster.doors.find(door => door.index == enemyZone.canonicalExit));
+      const door = cluster.doors.find(door => door.index == enemyZone.canonicalExit);
+      drawDoorLine(door);
+    } 
+    var popup = L.popup().setLatLng(e.latlng)
+      .setContent(`index: ${enemyZone.index.toString(16)}<br>rank: ${enemyZone.caveRank}<br>${JSON.stringify(enemyZone.enemyGroup)}`)
+      .openOn(map);
+  });
+}
 
 const mapImage = L.tileLayer('images/tiles/{z}/{x}/{y}.png', {
   noWrap: true,
@@ -92,7 +116,6 @@ function ignore(e) {
 function drop(e) {
   e.stopPropagation();
   e.preventDefault();
-  console.log("hi");
   var dt = e.dataTransfer;
   var files = dt.files;
   handleFiles(files);
@@ -156,11 +179,7 @@ function loadUrl(url) {
 
 function processJson(json) {
   jsonData = json;
-  shortestDoors.clearLayers();
-  otherDoors.clearLayers();
-  clusters.clearLayers();
-  chests.clearLayers();
-  bosses.clearLayers();
+  allLayers.forEach(layer => layer.clearLayers());
 
   json.bosses && json.bosses.forEach(boss => {
     const markerLoc = xy(boss.x, boss.y);
@@ -169,7 +188,19 @@ function processJson(json) {
     const desc = boss.enemyEncounters[0].filter(ee => ee.activity > 0).map(ee => ee.enemy).join('<br>');
     const marker = L.marker(markerLoc, opts).addTo(bosses).bindPopup(desc);
   });
-
+  options.includes('enemies') && json.enemies && json.enemies.forEach(enemyZone => {
+    if(enemyZone.enemyGroup) {
+      const bounds = [xy(enemyZone.xBounds[0], enemyZone.yBounds[0]),
+        xy(enemyZone.xBounds[1], enemyZone.yBounds[1])];
+      const rect = L.rectangle(bounds, {color: 'red', opacity: 0.5}).addTo(optionsOnly);
+      rect.interactive = false;
+    }
+    if(enemyZone.canonicalExit) return;
+    const bounds = [xy(enemyZone.xBounds[0], enemyZone.yBounds[0]),
+      xy(enemyZone.xBounds[1], enemyZone.yBounds[1])];
+    const rect = L.rectangle(bounds, {color: 'yellow', opacity: 0.8}).addTo(optionsOnly);
+    rect.interactive = false;
+  })
   json.chests && json.chests.forEach(chest => {
     const markerLoc = xy(chest.x, chest.y);
     let symbol = '🎁';
@@ -196,6 +227,15 @@ function processJson(json) {
   sortedClusters.forEach(cluster => {
     if(cluster.doors.every(door => !door.xDestination)) {
       // Completely ignore clusters with no reachable doors.
+        if(options.includes('doorcheck')) {
+            cluster.doors.forEach(door => {
+            const markerLoc = xy(door.x, door.y);
+            const opts = {icon: L.icon.glyph({ glyph: 'X', iconUrl: 'images/marker-orange.svg' })};
+            const marker = L.marker(markerLoc, opts).addTo(optionsOnly);
+            marker.bindPopup(`Index: ${door.index && door.index.toString(16)}, Cell: ${door.enemyCell.toString(16)}<br>
+              X: ${door.x.toString(16)}, Y: ${door.y.toString(16)}`);
+          });
+        }
       return;
     }
     const rank = Math.ceil(cluster.rank);
@@ -204,10 +244,6 @@ function processJson(json) {
     const rect = L.rectangle(bounds).addTo(clusters).on('click', clickCluster.bind(cluster));
     rect.bindPopup(`Rank: ${rank}`);
     cluster.doors.forEach(door => {
-      if(!door.xDestination) {
-        // A door that was turned into a non-exit in the AC. We don't need to display this.
-        return;
-      }
       const markerLoc = xy(door.x, door.y);
       let marker;
       if(door.onShortestPath) {
@@ -219,7 +255,8 @@ function processJson(json) {
       }
       marker.on('click', clickDoor.bind(door));
       if(options.includes('doorcheck')) {
-        marker.bindPopup(`Cell: ${door.enemyCell.toString(16)}, X: ${door.x.toString(16)}, Y: ${door.y.toString(16)}`);
+        marker.bindPopup(`Index: ${door.index && door.index.toString(16)}, Cell: ${door.enemyCell.toString(16)}<br>
+          X: ${door.x.toString(16)}, Y: ${door.y.toString(16)}`);
       }
     })
   })
