@@ -56,13 +56,25 @@ if(options.includes('enemies')) {
     clearDoorLines();
     if(enemyZone.canonicalExit && jsonData.clusters) {
       const cluster = jsonData.clusters.find(cluster => cluster.doors.find(door => door.index == enemyZone.canonicalExit));
-      const door = cluster.doors.find(door => door.index == enemyZone.canonicalExit);
-      drawDoorLine(door);
+      const door = cluster && cluster.doors.find(door => door.index == enemyZone.canonicalExit);
+      door && drawDoorLine(door);
     } 
-    var popup = L.popup().setLatLng(e.latlng)
-      .setContent(`index: ${enemyZone.index.toString(16)}<br>rank: ${enemyZone.caveRank}<br>area: ${enemyZone.area}<br>${JSON.stringify(enemyZone.enemyGroup)}`)
-      .openOn(map);
+    let content = `index: 0x${enemyZone.index.toString(16)}<br>rank: ${enemyZone.caveRank}<br>area: ${enemyZone.area}<br>`;
+    if(enemyZone.enemyGroup) {
+      content += `enemyGroup: 0x${enemyZone.enemyGroup.index.toString(16)} - flag 0x${enemyZone.enemyGroup.flag.toString(16)}<br>
+        ${enemyZone.enemyGroup.subgroups.map(x => enemySubgroupToHtml(x))}`
+    }
+    const popup = L.popup().setLatLng(e.latlng).setContent(content).openOn(map);
   });
+}
+
+function enemySubgroupToHtml(enemySubgroup) {
+  let result = `<table class="enemySubgroup"><tr><th colspan="2">${enemySubgroup.subgroup == 1 ? 'Flag On' : 'Flag Off'} - rate ${enemySubgroup.rate}</th></tr>`;
+  enemySubgroup.entries.forEach(entry => {
+    result += `<tr><td>${entry.probability*100/8}%</td><td>${entry.enemyEncounter.map(x => `${x.activity}x ${x.enemy}`).join(`, `)}</td></tr>`
+  });
+  result += `</table>`;
+  return result;
 }
 
 const mapImage = L.tileLayer('images/tiles/{z}/{x}/{y}.png', {
@@ -232,8 +244,8 @@ function processJson(json) {
             const markerLoc = xy(door.x, door.y);
             const opts = {icon: L.icon.glyph({ glyph: 'X', iconUrl: 'images/marker-orange.svg' })};
             const marker = L.marker(markerLoc, opts).addTo(optionsOnly);
-            marker.bindPopup(`Index: ${door.index && door.index.toString(16)}, Cell: ${door.enemyCell.toString(16)}<br>
-              X: ${door.x.toString(16)}, Y: ${door.y.toString(16)}`);
+            marker.bindPopup(`Index: 0x${door.index && door.index.toString(16)}, Cell: 0x${door.enemyCell.toString(16)}<br>
+              X: 0x${door.x.toString(16)}, Y: 0x${door.y.toString(16)}`);
           });
         }
       return;
@@ -255,8 +267,8 @@ function processJson(json) {
       }
       marker.on('click', clickDoor.bind(door));
       if(options.includes('doorcheck')) {
-        marker.bindPopup(`Index: ${door.index && door.index.toString(16)}, Cell: ${door.enemyCell.toString(16)}<br>
-          X: ${door.x.toString(16)}, Y: ${door.y.toString(16)}`);
+        marker.bindPopup(`Index: 0x${door.index && door.index.toString(16)}, Cell: 0x${door.enemyCell.toString(16)}<br>
+          X: 0x${door.x.toString(16)}, Y: 0x${door.y.toString(16)}`);
       }
     })
   })
