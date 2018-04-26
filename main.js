@@ -221,7 +221,7 @@ function processJson(json) {
       symbol = '💲';
       desc = `Money: $${chest.money}`;
     }
-    if(chest.itemType == 0x10) symbol = '🗡️';
+    if(chest.itemType == 0x10 || chest.itemType == 0x11) symbol = '🗡️';
     if(chest.itemType == 0x14) symbol = '🛡️';
     if(chest.itemType == 0x18) symbol = '🧤';
     if(chest.itemType == 0x1C) symbol = '🎩';
