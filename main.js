@@ -48,8 +48,16 @@ if(options.includes('enemies')) {
   map.on('click', e => {
     if(!jsonData.enemies) return;
     const coords = rc.project(e.latlng);
-    const enemyZone = jsonData.enemies.find(enemyZone => enemyZone.xBounds[0] <= coords.x && enemyZone.xBounds[1] >= coords.x &&
-      enemyZone.yBounds[0] <= coords.y && enemyZone.yBounds[1] >= coords.y);
+    const enemyZone = jsonData.enemies.find(enemyZone => {
+      if(enemyZone.bounds) {
+        return enemyZone.bounds.x1 <= coords.x && enemyZone.bounds.x2 >= coords.x &&
+        enemyZone.bounds.y1 <= coords.y && enemyZone.bounds.y2 >= coords.y;
+      }
+      else {
+        return enemyZone.xBounds[0] <= coords.x && enemyZone.xBounds[1] >= coords.x &&
+        enemyZone.yBounds[0] <= coords.y && enemyZone.yBounds[1] >= coords.y;
+      }
+    });
     if(!enemyZone) {
       return;
     }
@@ -70,7 +78,7 @@ if(options.includes('enemies')) {
 
 function enemySubgroupToHtml(enemySubgroup) {
   let result = `<table class="enemySubgroup"><tr><th colspan="2">${enemySubgroup.subgroup == 1 ? 'Flag On' : 'Flag Off'} - rate ${enemySubgroup.rate}</th></tr>`;
-  enemySubgroup.entries.forEach(entry => {
+  enemySubgroup.entries && enemySubgroup.entries.forEach(entry => {
     result += `<tr><td>${entry.probability*100/8}%</td><td>${entry.enemyEncounter.map(x => `${x.activity}x ${x.enemy}`).join(`, `)}</td></tr>`
   });
   result += `</table>`;
@@ -202,14 +210,27 @@ function processJson(json) {
   });
   options.includes('enemies') && json.enemies && json.enemies.forEach(enemyZone => {
     if(enemyZone.enemyGroup) {
-      const bounds = [xy(enemyZone.xBounds[0], enemyZone.yBounds[0]),
-        xy(enemyZone.xBounds[1], enemyZone.yBounds[1])];
+      let bounds;
+      if(enemyZone.bounds) {
+        bounds = [xy(enemyZone.bounds.x1, enemyZone.bounds.y1),
+          xy(enemyZone.bounds.x2, enemyZone.bounds.y2)];
+      }
+      else {
+        bounds = [xy(enemyZone.xBounds[0], enemyZone.yBounds[0]),
+          xy(enemyZone.xBounds[1], enemyZone.yBounds[1])];
+      }
       const rect = L.rectangle(bounds, {color: 'red', opacity: 0.5}).addTo(optionsOnly);
       rect.interactive = false;
     }
     if(enemyZone.canonicalExit || !options.includes('badenemies')) return;
-    const bounds = [xy(enemyZone.xBounds[0], enemyZone.yBounds[0]),
-      xy(enemyZone.xBounds[1], enemyZone.yBounds[1])];
+    if(enemyZone.bounds) {
+      bounds = [xy(enemyZone.bounds.x1, enemyZone.bounds.y1),
+        xy(enemyZone.bounds.x2, enemyZone.bounds.y2)];
+    }
+    else {
+      bounds = [xy(enemyZone.xBounds[0], enemyZone.yBounds[0]),
+        xy(enemyZone.xBounds[1], enemyZone.yBounds[1])];
+    }
     const rect = L.rectangle(bounds, {color: 'yellow', opacity: 0.8}).addTo(optionsOnly);
     rect.interactive = false;
   })
