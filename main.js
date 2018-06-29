@@ -73,6 +73,25 @@ if(options.includes('enemies')) {
         ${enemyZone.enemyGroup.subgroups.map(x => enemySubgroupToHtml(x))}`
     }
     const popup = L.popup().setLatLng(e.latlng).setContent(content).openOn(map);
+    if(options.includes("enemycheck")) {
+      optionsOnly.clearLayers();
+      const checkedEnemyZone = enemyZone;
+      jsonData.enemies && jsonData.enemies.forEach(enemyZone => {
+        if(enemyZone.canonicalExit === checkedEnemyZone.canonicalExit) {
+          let bounds;
+          if(enemyZone.bounds) {
+            bounds = [xy(enemyZone.bounds.x1, enemyZone.bounds.y1),
+              xy(enemyZone.bounds.x2, enemyZone.bounds.y2)];
+          }
+          else {
+            bounds = [xy(enemyZone.xBounds[0], enemyZone.yBounds[0]),
+              xy(enemyZone.xBounds[1], enemyZone.yBounds[1])];
+          }
+          const rect = L.rectangle(bounds, {color: 'blue', opacity: 0.5}).addTo(optionsOnly);
+          rect.interactive = false;
+        }
+      });
+    }
   });
 }
 
