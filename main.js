@@ -294,7 +294,7 @@ function processJson(json) {
     const bounds = [xy(cluster.explicitBounds.x1, cluster.explicitBounds.y1),
       xy(cluster.explicitBounds.x2, cluster.explicitBounds.y2)];
     const rect = L.rectangle(bounds).addTo(clusters).on('click', clickCluster.bind(cluster));
-    rect.bindPopup(`Rank: ${rank}`);
+    rect.bindPopup(`Rank: ${rank}<br>Cave level: ${cluster.caveLevel}`);
     cluster.doors.forEach(door => {
       const markerLoc = xy(door.x, door.y);
       let marker;
