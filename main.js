@@ -12,16 +12,18 @@ const shortestDoors = L.layerGroup([]);
 const otherDoors = L.layerGroup([]);
 const clusters = L.layerGroup([]);
 const chests = L.layerGroup([]);
+const criticalChests = L.layerGroup([]);
 const bosses = L.layerGroup([]);
 const optionsOnly = L.layerGroup([]);
 const overlayMaps = {
   "Shortest Path Doors": shortestDoors,
   "Other Doors": otherDoors,
   "Clusters": clusters,
-  "Chests": chests,
+  "Critical Chests": criticalChests,
+  "All Chests": chests,
   "Bosses": bosses,
 };
-const allLayers = [shortestDoors, otherDoors, clusters, chests, bosses];
+const allLayers = [shortestDoors, otherDoors, clusters, criticalChests, chests, bosses];
 const defaultLayers = [shortestDoors, bosses];
 if(options.length) {
   overlayMaps["Optional"] = optionsOnly;
@@ -253,6 +255,14 @@ function processJson(json) {
     const rect = L.rectangle(bounds, {color: 'yellow', opacity: 0.8}).addTo(optionsOnly);
     rect.interactive = false;
   })
+  const importantItems = [
+    "Earth pendant",
+    "Sea pendant",
+    "Star pendant",
+    "Franklin badge",
+    "Auto-StarMaster",
+    "Rabbit's foot",
+  ];
   json.chests && json.chests.forEach(chest => {
     const markerLoc = xy(chest.x, chest.y);
     let symbol = '🎁';
@@ -268,6 +278,9 @@ function processJson(json) {
     if([32, 36, 40, 44].indexOf(chest.itemType) != -1) symbol = '🥤';
     const opts = {icon: L.icon.glyph({ glyph: symbol, iconUrl: 'images/marker-blue.svg' })};
     const marker = L.marker(markerLoc, opts).addTo(chests).bindPopup(desc);
+    if(importantItems.includes(chest.name)) {
+      L.marker(markerLoc, opts).addTo(criticalChests).bindPopup(desc);
+    }
   });
   const doorOpts = {icon: L.icon.glyph({ glyph: '🚪', iconUrl: 'images/marker-gray.svg' })};
 
