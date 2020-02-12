@@ -262,6 +262,7 @@ function processJson(json) {
     "Franklin badge",
     "Auto-StarMaster",
     "Rabbit's foot",
+    "Heavy bazooka",
   ];
   json.chests && json.chests.forEach(chest => {
     const markerLoc = xy(chest.x, chest.y);
