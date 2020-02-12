@@ -277,6 +277,15 @@ function processJson(json) {
     if(chest.itemType == 0x18) symbol = '🧤';
     if(chest.itemType == 0x1C) symbol = '🎩';
     if([32, 36, 40, 44].indexOf(chest.itemType) != -1) symbol = '🥤';
+
+    if(chest.name == "Earth pendant") symbol = '🌎';
+    if(chest.name == "Sea pendant") symbol = '🌊';
+    if(chest.name == "Star pendant") symbol = '⭐';
+    if(chest.name == "Franklin badge") symbol = '⚡';
+    if(chest.name == "Auto-StarMaster") symbol = '✨';
+    if(chest.name == "Rabbit's foot") symbol = '🐇';
+    if(chest.name == "Heavy bazooka" || chest.name == "Bazooka") symbol = '💥';
+
     const opts = {icon: L.icon.glyph({ glyph: symbol, iconUrl: 'images/marker-blue.svg' })};
     const marker = L.marker(markerLoc, opts).addTo(chests).bindPopup(desc);
     if(importantItems.includes(chest.name)) {
