@@ -69,7 +69,7 @@ if(options.includes('enemies')) {
       const door = cluster && cluster.doors.find(door => door.index == enemyZone.canonicalExit);
       door && drawDoorLine(door);
     } 
-    let content = `teleport xy:${coords.x / 8}, ${coords.y / 8}<br>index: 0x${enemyZone.index.toString(16)}<br>rank: ${enemyZone.caveRank}<br>area: ${enemyZone.area}<br>`;
+    let content = `teleport xy:${Math.floor(coords.x / 8)}, ${Math.floor(coords.y / 8)}<br>index: 0x${enemyZone.index.toString(16)}<br>rank: ${enemyZone.caveRank}<br>area: ${enemyZone.area}<br>`;
     if(enemyZone.enemyGroup) {
       content += `enemyGroup: 0x${enemyZone.enemyGroup.index.toString(16)} - flag 0x${enemyZone.enemyGroup.flag.toString(16)}<br>
         ${enemyZone.enemyGroup.subgroups.map(x => enemySubgroupToHtml(x))}`
